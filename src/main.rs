@@ -11,13 +11,16 @@ const SCREEN_HEIGHT: u32 = 700;
 const TILE_SIZE: u16 = 32;
 const GRID_WIDTH: u16 = 12;
 const GRID_HEIGHT: u16 = 20;
-const TICK_LENGTH: usize = 200;
+const TICK_LENGTH: u128 = 650;
+const TICK_SPEEDUP: u128 = 50;
+const SPEEDUP_LIMIT: usize = 20; // After how many ticks speedup is applied
 
 fn main() {
     let event_loop = EventLoop::new();
     let mut input = WinitInputHelper::new();
     let mut time = Instant::now();
-
+    let mut tick_counter = 0;
+    let mut speedup = 0;
     let window = {
         let size = LogicalSize::new(SCREEN_WIDTH as f64, SCREEN_HEIGHT as f64);
         WindowBuilder::new().with_title("Rustetris")
@@ -121,10 +124,20 @@ fn main() {
             let dt = now.duration_since(time);
 
             // If tick has passed, move current piece downwards and check if it stopped
-            if dt.as_millis() > TICK_LENGTH as u128 {
+            
+            let mut time_limit = TICK_LENGTH - speedup as u128;
+            if time_limit < 100 {
+                time_limit = 100;
+            }
+            if dt.as_millis() > time_limit {
                 at_bottom = !piece.try_relocate(0, 1, &grid);
                 if at_bottom {piece_moved = false;}
                 time = Instant::now();
+                tick_counter += 1;
+                if tick_counter > SPEEDUP_LIMIT {
+                    tick_counter = 0;
+                    speedup += TICK_SPEEDUP;
+                }
             }
             /*if piece_moved {
                 for tile in &piece.old_tiles {
