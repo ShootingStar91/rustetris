@@ -1,7 +1,7 @@
 Rustetris backlog
 
 ++ Main tasks
-1. Destroy a full line and move all other dead pieces downwards
+[DONE] 1. Destroy a full line and move all other dead pieces downwards
 2. Create other types of pieces randomly
 3. Recognize when game is over, meaning when a spawned piece cannot move even once (or is already overlapping)
 

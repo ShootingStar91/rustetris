@@ -126,45 +126,47 @@ fn main() {
                 if at_bottom {piece_moved = false;}
                 time = Instant::now();
             }
-            if piece_moved {
+            /*if piece_moved {
                 for tile in &piece.old_tiles {
                     grid[tile.0 as usize][tile.1 as usize] = 0;
                 }
                 
-            }
+            }*/
 
-
-            let mut full_lines: Vec<usize> = Vec::new();
-            // Check if there is a full line that needs demolishing and move everything downwards
-            for row in 0..GRID_HEIGHT {
-                let mut is_full = true;
-                for col in 0..GRID_WIDTH {
-                    if grid[col as usize][row as usize] == 0 {
-                        is_full = false;
-                        break;
+            if at_bottom {
+                let mut full_lines: Vec<usize> = Vec::new();
+                // Check if there is a full line that needs demolishing and move everything downwards
+                for row in 0..GRID_HEIGHT {
+                    let mut is_full = true;
+                    for col in 0..GRID_WIDTH {
+                        if grid[col as usize][row as usize] == 0 {
+                            is_full = false;
+                            break;
+                        }
+                    }
+                    if is_full {
+                        full_lines.push(row as usize);
                     }
                 }
-                if is_full {
-                    full_lines.push(row as usize);
-                }
-            }
 
-            // Demolish each full line and move tiles above it downwards
-            for row in full_lines {
-                // First, empty row
-                for col in 0..GRID_WIDTH {
-                    grid[col as usize][row as usize] = 0;
-                }
-                // Then, move all rows above it down by 1
-                for row_to_move in (row as i32)..-1 {
-                    for col in (GRID_WIDTH as i32-1)..-1 {
-                        let tile_to_move = grid[col as usize][(row_to_move - 1) as usize];
-                        grid[col as usize][row_to_move as usize] = tile_to_move;
-                        grid[col as usize][(row_to_move - 1) as usize] = 0;
+                // Demolish each full line and move tiles above it downwards
+                for row in full_lines {
+                    // First, empty row
+                    for col in 0..GRID_WIDTH {
+                        grid[col as usize][row as usize] = 0;
+                    }
+                    println!("moving line at {}", row);
+                    // Then, move all rows above it down by 1
+                    for row_to_move in (1..=row).rev() {
+                        for col in (0..GRID_WIDTH).rev() {
+                            println!("row {} col {}", row, col);
+                            let tile_to_move = grid[col as usize][(row_to_move - 1) as usize];
+                            grid[col as usize][row_to_move as usize] = tile_to_move;
+                            grid[col as usize][(row_to_move - 1) as usize] = 0;
+                        }
                     }
                 }
             }
-            
             window.request_redraw();
         }
     });
@@ -312,7 +314,6 @@ impl Piece {
             }
             if skip { continue; }
             if grid[(tile.0 + self.x) as usize][(tile.1 + self.y) as usize] > 0 {
-                println!("moi");
                 return true;
             }
         }
