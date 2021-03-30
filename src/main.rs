@@ -25,6 +25,7 @@ fn main() {
     let mut tick_counter = 0;
     let mut speedup = 0;
     let mut rng = rand::thread_rng();
+    let mut score = 0;
     let window = {
         let size = LogicalSize::new(SCREEN_WIDTH as f64, SCREEN_HEIGHT as f64);
         WindowBuilder::new().with_title("Rustetris")
@@ -80,6 +81,12 @@ fn main() {
             println!("created piece");
             piece = create_piece(&mut rng);
             at_bottom = false;
+
+            // Check for game over
+            if piece.overlaps(&grid) {
+                *control_flow = ControlFlow::Exit;
+                println!("Game over! Score: {}", score);
+            }
         }
 
 
@@ -183,7 +190,8 @@ fn main() {
                         full_lines.push(row as usize);
                     }
                 }
-
+                // Add full lines to scores
+                score += full_lines.len();
                 // Demolish each full line and move tiles above it downwards
                 for row in full_lines {
                     // First, empty row
