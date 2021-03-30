@@ -11,12 +11,17 @@ use rand::Rng;
 const TILE_SIZE: u16 = 32;
 const GRID_WIDTH: u16 = 12;
 const GRID_HEIGHT: u16 = 20;
-const TICK_LENGTH: u128 = 300;
-const TICK_SPEEDUP: u128 = 0;
-const SPEEDUP_LIMIT: usize = 20; // After how many ticks speedup is applied
 const SCREEN_WIDTH: u32 = TILE_SIZE as u32 * GRID_WIDTH as u32;
 const SCREEN_HEIGHT: u32 = TILE_SIZE as u32 * GRID_HEIGHT as u32;
-const DEBUG_PRINT: bool = true;
+
+const TICK_LENGTH: u128 = 300;   // Game speed at start
+const TICK_SPEEDUP: u128 = 0;    // How much ticks will speed up
+const SPEEDUP_LIMIT: usize = 20; // After how many ticks speedup is applied
+
+const COLORS: usize = 4;
+
+// Set debug prints on or off
+const DEBUG_PRINT: bool = false;
 
 fn main() {
     let event_loop = EventLoop::new();
@@ -221,18 +226,16 @@ pub fn draw_grid(grid: &Vec<Vec<u16>>, frame: &mut [u8]) {
         let tile = get_tile(i);
         let mut color: usize = 2;
         if tile.0 <= GRID_WIDTH as usize && tile.1 <= GRID_HEIGHT as usize {
-            if grid[tile.0][tile.1] > 0 {
-                color = 1;
-            } else {
-                color = 0;
-            }
+            color = grid[tile.0 as usize][tile.1 as usize] as usize;
         }
-        let rgba = if color == 1 {
-            [0x5e, 0x48, 0xe8, 0xff]
-        } else if color == 0 {
-            [0x48, 0xb2, 0xe8, 0xff]
-        } else {
-            [0x00, 0x00, 0x00, 0x00]
+
+        let rgba = match color {
+            0 => [0xfd, 0xfd, 0xfd, 0xff], // 253, 237, 248
+            1 => [0x32, 0xb9, 0x13, 0xff], // 50 185 19
+            2 => [0x13, 0x32, 0xb9, 0xff], // 19, 50, 185
+            3 => [0xb9, 0x48, 0x13, 0xff], // 185, 94, 19
+            4 => [0xb9, 0x13, 0x82, 0xff], // 185, 19, 130
+            _ => panic!("Invalid color value in draw grid"),
         };
 
         pixel.copy_from_slice(&rgba);
@@ -370,13 +373,15 @@ impl Piece {
 }
 
 pub fn create_piece(rng: &mut rand::rngs::ThreadRng) -> Piece {
-    let piece_type = rng.gen_range(0..=2);
+    let piece_type = rng.gen_range(1..=6);
     let mut tiles = match piece_type {
-        0 => vec![(0, 2), (0, -1), (0, 1), (0, 0)],
-        1 => vec![(0, 0), (0, -1), (0, 1), (1, 1)],
-        2 => vec![(0, -1), (0, 0), (0, 1), (1, 0)],
-        3 => vec![(0, -1), (0, 0), (0, 1), (-1, -1)],
-        4 => vec![(0, 0), (1, 0), (0, 1), (1, 1)],
+        0 => vec![(0, 2),  (0, -1), (0, 1), (0,   0)],
+        1 => vec![(0, 0),  (0, -1), (0, 1), (1,   1)],
+        2 => vec![(0, -1), (0,  0), (0, 1), (1,   0)],
+        3 => vec![(0, -1), (0,  0), (0, 1), (-1, -1)],
+        4 => vec![(-1, 0),  (0,  0), (0, 1), (1,   1)],
+        5 => vec![(-1, 1),  (0,  0), (0, 1), (1,   0)],
+        6 => vec![(0, 0),  (0, -1), (0, 1), (-1, 1)],
         
         _ => panic!("Create piece panicked"),
     };
@@ -385,9 +390,9 @@ pub fn create_piece(rng: &mut rand::rngs::ThreadRng) -> Piece {
     Piece {
         tiles,
         orientation: 0,
-        color: 0,
+        color: rng.gen_range(1..=COLORS),
         x: 5,
-        y: 3,
+        y: 2,
         old_tiles: vec![],
     }
 }
@@ -401,6 +406,6 @@ pub fn refresh_tiles(piece: &mut Piece, grid: &mut Vec<Vec<u16>>) {
 
     // Load piece into grid
     for tile in &piece.tiles {
-        grid[(tile.0 + piece.x) as usize][(tile.1 + piece.y) as usize] = 1;
+        grid[(tile.0 + piece.x) as usize][(tile.1 + piece.y) as usize] = piece.color as u16;
     }
 }
