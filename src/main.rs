@@ -6,14 +6,14 @@ use winit::window::WindowBuilder;
 use winit_input_helper::WinitInputHelper;
 use std::time::{Duration, Instant};
 
-const SCREEN_WIDTH: u32 = 400;
-const SCREEN_HEIGHT: u32 = 700;
 const TILE_SIZE: u16 = 32;
 const GRID_WIDTH: u16 = 12;
 const GRID_HEIGHT: u16 = 20;
 const TICK_LENGTH: u128 = 650;
 const TICK_SPEEDUP: u128 = 50;
 const SPEEDUP_LIMIT: usize = 20; // After how many ticks speedup is applied
+const SCREEN_WIDTH: u32 = TILE_SIZE as u32 * GRID_WIDTH as u32;
+const SCREEN_HEIGHT: u32 = TILE_SIZE as u32 * GRID_HEIGHT as u32;
 
 fn main() {
     let event_loop = EventLoop::new();
@@ -108,10 +108,10 @@ fn main() {
             }
 
             if input.key_pressed(VirtualKeyCode::Up) {
-                piece_moved = piece.rotate(true);
+                piece_moved = piece.rotate(true, &grid);
             }
             if input.key_pressed(VirtualKeyCode::Down) {
-                piece_moved = piece.rotate(false);
+                piece_moved = piece.rotate(false, &grid);
 
             }
             if input.key_pressed(VirtualKeyCode::Left) {
@@ -193,7 +193,7 @@ pub fn draw_grid(grid: &Vec<Vec<u16>>, frame: &mut [u8]) {
     for (i, pixel) in frame.chunks_exact_mut(4).enumerate() {
         let tile = get_tile(i);
         let mut color: usize = 2;
-        if tile.0 < GRID_WIDTH as usize && tile.1 < GRID_HEIGHT as usize {
+        if tile.0 <= GRID_WIDTH as usize && tile.1 <= GRID_HEIGHT as usize {
             if grid[tile.0][tile.1] > 0 {
                 color = 1;
             } else {
@@ -202,7 +202,7 @@ pub fn draw_grid(grid: &Vec<Vec<u16>>, frame: &mut [u8]) {
         }
         let rgba = if color == 1 {
             [0x5e, 0x48, 0xe8, 0xff]
-        } else if color == 2 {
+        } else if color == 0 {
             [0x48, 0xb2, 0xe8, 0xff]
         } else {
             [0x00, 0x00, 0x00, 0x00]
@@ -265,7 +265,7 @@ impl Piece {
     /// Rotate piece to right or left
     /// Checks first if rotation is possible,
     /// if not, returns false
-    fn rotate(&mut self, to_right: bool) -> bool {
+    fn rotate(&mut self, to_right: bool, grid: &Vec<Vec<u16>>) -> bool {
         self.rotate_tiles(to_right);
         let mut old_tiles_backup  = self.old_tiles.clone();
         // Undo rotation if tiles are not inside game grid
@@ -275,6 +275,12 @@ impl Piece {
             return false;
         }
         
+        if self.overlaps(grid) {
+            self.rotate_tiles(!to_right);
+            return false;
+        }
+
+
         // Set orientation variable
         if to_right {
             if self.orientation < 3 {
