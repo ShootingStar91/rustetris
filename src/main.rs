@@ -1,12 +1,12 @@
 use pixels::{Pixels, SurfaceTexture};
+use rand::thread_rng;
+use rand::Rng;
+use std::time::{Duration, Instant};
 use winit::dpi::LogicalSize;
 use winit::event::{Event, VirtualKeyCode};
 use winit::event_loop::{ControlFlow, EventLoop};
 use winit::window::WindowBuilder;
 use winit_input_helper::WinitInputHelper;
-use std::time::{Duration, Instant};
-use rand::thread_rng;
-use rand::Rng;
 
 const TILE_SIZE: u16 = 32;
 const GRID_WIDTH: u16 = 12;
@@ -14,8 +14,8 @@ const GRID_HEIGHT: u16 = 20;
 const SCREEN_WIDTH: u32 = TILE_SIZE as u32 * GRID_WIDTH as u32;
 const SCREEN_HEIGHT: u32 = TILE_SIZE as u32 * GRID_HEIGHT as u32;
 
-const TICK_LENGTH: u128 = 300;   // Game speed at start
-const TICK_SPEEDUP: u128 = 0;    // How much ticks will speed up
+const TICK_LENGTH: u128 = 300; // Game speed at start
+const TICK_SPEEDUP: u128 = 0; // How much ticks will speed up
 const SPEEDUP_LIMIT: usize = 20; // After how many ticks speedup is applied
 
 const COLORS: usize = 4;
@@ -33,12 +33,13 @@ fn main() {
     let mut score = 0;
     let window = {
         let size = LogicalSize::new(SCREEN_WIDTH as f64, SCREEN_HEIGHT as f64);
-        WindowBuilder::new().with_title("Rustetris")
-        .with_inner_size(size)
-        .with_min_inner_size(size)
-        .with_max_inner_size(size)
-        .build(&event_loop)
-        .unwrap()
+        WindowBuilder::new()
+            .with_title("Rustetris")
+            .with_inner_size(size)
+            .with_min_inner_size(size)
+            .with_max_inner_size(size)
+            .build(&event_loop)
+            .unwrap()
     };
     let mut pixels = {
         let window_size = window.inner_size();
@@ -81,9 +82,7 @@ fn main() {
             }
         }
 
-
         if at_bottom {
-            println!("created piece");
             piece = create_piece(&mut rng);
             at_bottom = false;
 
@@ -94,13 +93,11 @@ fn main() {
             }
         }
 
-
         refresh_tiles(&mut piece, &mut grid);
 
-
-        /* 
+        /*
         let mut reserved_tiles = Vec::new();
-        
+
         // Load location of pieces into separate grid without current piece
         for piece in &pieces[1..] {
             for tile in &piece.tiles {
@@ -134,7 +131,7 @@ fn main() {
                 at_bottom = true;
             }
             if input.key_pressed(VirtualKeyCode::Left) {
-                piece_moved =  piece.try_relocate(-1, 0, &grid);
+                piece_moved = piece.try_relocate(-1, 0, &grid);
             }
             if input.key_pressed(VirtualKeyCode::Right) {
                 piece_moved = piece.try_relocate(1, 0, &grid);
@@ -151,7 +148,9 @@ fn main() {
             }
             if dt.as_millis() > time_limit {
                 at_bottom = !piece.try_relocate(0, 1, &grid);
-                if at_bottom {piece_moved = false;}
+                if at_bottom {
+                    piece_moved = false;
+                }
                 time = Instant::now();
                 tick_counter += 1;
                 if tick_counter > SPEEDUP_LIMIT {
@@ -177,7 +176,7 @@ fn main() {
                 for tile in &piece.old_tiles {
                     grid[tile.0 as usize][tile.1 as usize] = 0;
                 }
-                
+
             }*/
 
             if at_bottom {
@@ -217,7 +216,6 @@ fn main() {
             window.request_redraw();
         }
     });
-
 }
 
 /// Draws the game grid
@@ -243,7 +241,7 @@ pub fn draw_grid(grid: &Vec<Vec<u16>>, frame: &mut [u8]) {
 }
 
 /// Get values (0 - GRID_WIDTH, 0 - GRID_HEIGHT)
-/// 
+///
 /// If outside, get -1
 pub fn get_tile(pixel: usize) -> (usize, usize) {
     let screen_x = pixel % SCREEN_WIDTH as usize;
@@ -264,7 +262,6 @@ pub struct Piece {
 }
 
 impl Piece {
-
     /// Move the piece
     fn relocate(&mut self, dx: i16, dy: i16) {
         /*self.tiles
@@ -281,14 +278,13 @@ impl Piece {
         self.relocate(dx, dy);
         let mut old_tiles_backup = self.old_tiles.clone();
 
-        if !self.is_in_boundaries()
-        || self.overlaps(grid) {
+        if !self.is_in_boundaries() || self.overlaps(grid) {
             self.relocate(-dx, -dy);
             return false;
         }
-        
+
         self.old_tiles = old_tiles_backup.clone();
-        
+
         true
     }
 
@@ -297,19 +293,18 @@ impl Piece {
     /// if not, returns false
     fn rotate(&mut self, to_right: bool, grid: &Vec<Vec<u16>>) -> bool {
         self.rotate_tiles(to_right);
-        let mut old_tiles_backup  = self.old_tiles.clone();
+        let mut old_tiles_backup = self.old_tiles.clone();
         // Undo rotation if tiles are not inside game grid
         // and inform function caller
         if !self.is_in_boundaries() {
             self.rotate_tiles(!to_right);
             return false;
         }
-        
+
         if self.overlaps(grid) {
             self.rotate_tiles(!to_right);
             return false;
         }
-
 
         // Set orientation variable
         if to_right {
@@ -329,10 +324,11 @@ impl Piece {
 
     fn rotate_tiles(&mut self, to_right: bool) {
         for tile in &mut self.tiles {
-            let new_tile = if to_right { 
-                (tile.1, -tile.0) 
-            } else { 
-                    (-tile.1, tile.0) };
+            let new_tile = if to_right {
+                (tile.1, -tile.0)
+            } else {
+                (-tile.1, tile.0)
+            };
             *tile = new_tile;
         }
     }
@@ -341,9 +337,7 @@ impl Piece {
         for tile in &self.tiles {
             let x = self.x + tile.0;
             let y = self.y + tile.1;
-            if x < 0 || 
-                x >= GRID_WIDTH as i16 || 
-                y < 0 || y >= GRID_HEIGHT as i16 {
+            if x < 0 || x >= GRID_WIDTH as i16 || y < 0 || y >= GRID_HEIGHT as i16 {
                 return false;
             }
         }
@@ -352,40 +346,40 @@ impl Piece {
 
     fn overlaps(&self, grid: &Vec<Vec<u16>>) -> bool {
         for tile in &self.tiles {
-
             let mut skip = false;
 
             for old_tile in &self.old_tiles {
-                if old_tile.0 == (tile.0 + self.x) as i16 && old_tile.1 == (tile.1 + self.y) as i16 {
+                if old_tile.0 == (tile.0 + self.x) as i16 && old_tile.1 == (tile.1 + self.y) as i16
+                {
                     skip = true;
                     break;
                 }
             }
-            if skip { continue; }
+            if skip {
+                continue;
+            }
             if grid[(tile.0 + self.x) as usize][(tile.1 + self.y) as usize] > 0 {
                 return true;
             }
         }
-        
+
         false
     }
-
 }
 
 pub fn create_piece(rng: &mut rand::rngs::ThreadRng) -> Piece {
     let piece_type = rng.gen_range(1..=6);
     let mut tiles = match piece_type {
-        0 => vec![(0, 2),  (0, -1), (0, 1), (0,   0)],
-        1 => vec![(0, 0),  (0, -1), (0, 1), (1,   1)],
-        2 => vec![(0, -1), (0,  0), (0, 1), (1,   0)],
-        3 => vec![(0, -1), (0,  0), (0, 1), (-1, -1)],
-        4 => vec![(-1, 0),  (0,  0), (0, 1), (1,   1)],
-        5 => vec![(-1, 1),  (0,  0), (0, 1), (1,   0)],
-        6 => vec![(0, 0),  (0, -1), (0, 1), (-1, 1)],
-        
+        0 => vec![(0, 2), (0, -1), (0, 1), (0, 0)],
+        1 => vec![(0, 0), (0, -1), (0, 1), (1, 1)],
+        2 => vec![(0, -1), (0, 0), (0, 1), (1, 0)],
+        3 => vec![(0, -1), (0, 0), (0, 1), (-1, -1)],
+        4 => vec![(-1, 0), (0, 0), (0, 1), (1, 1)],
+        5 => vec![(-1, 1), (0, 0), (0, 1), (1, 0)],
+        6 => vec![(0, 0), (0, -1), (0, 1), (-1, 1)],
+
         _ => panic!("Create piece panicked"),
     };
-    
 
     Piece {
         tiles,
@@ -398,7 +392,11 @@ pub fn create_piece(rng: &mut rand::rngs::ThreadRng) -> Piece {
 }
 
 pub fn refresh_tiles(piece: &mut Piece, grid: &mut Vec<Vec<u16>>) {
-    piece.old_tiles.iter().map(|tile| grid[tile.0 as usize][tile.1 as usize] = 0).count();
+    piece
+        .old_tiles
+        .iter()
+        .map(|tile| grid[tile.0 as usize][tile.1 as usize] = 0)
+        .count();
     piece.old_tiles = vec![];
     for tile in &piece.tiles {
         piece.old_tiles.push((tile.0 + piece.x, tile.1 + piece.y));
