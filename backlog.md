@@ -12,9 +12,15 @@ Rustetris backlog
 
 
 ++ Possible future ideas
-[DONE] 1. Speed growing as time goes by
+[DONE, although crashes if played too long] 1. Speed growing as time goes by
 2. Counting score
 3. Highscore list
 
 ++ Known bugs
-1. Sometimes when pressing downkey, block stopped around middle of screen even though nothing was blocking it
+[Possibly fixed by refreshing old_tiles and loading piece to grid also if drop key has moved brick]
+[1]. Sometimes when pressing downkey, block stopped around middle of screen even though nothing was blocking it
+   * Doesn't seem to stop in middle of screen anymore after addition of continous press to drop.
+     However, stops one tile before it should. Possibly related to case where the piece moves twice within one
+     loop run: First when pressing down and then with tick-move. Maybe caused by old tiles getting refreshed only
+     once during the loop, and there is a case of brick overlapping with itself
+     ...but this doesn't explain why it always happens just one tile before it would overlap with something

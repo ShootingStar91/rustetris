@@ -5,15 +5,18 @@ use winit::event_loop::{ControlFlow, EventLoop};
 use winit::window::WindowBuilder;
 use winit_input_helper::WinitInputHelper;
 use std::time::{Duration, Instant};
+use rand::thread_rng;
+use rand::Rng;
 
 const TILE_SIZE: u16 = 32;
 const GRID_WIDTH: u16 = 12;
 const GRID_HEIGHT: u16 = 20;
-const TICK_LENGTH: u128 = 650;
-const TICK_SPEEDUP: u128 = 50;
+const TICK_LENGTH: u128 = 300;
+const TICK_SPEEDUP: u128 = 0;
 const SPEEDUP_LIMIT: usize = 20; // After how many ticks speedup is applied
 const SCREEN_WIDTH: u32 = TILE_SIZE as u32 * GRID_WIDTH as u32;
 const SCREEN_HEIGHT: u32 = TILE_SIZE as u32 * GRID_HEIGHT as u32;
+const DEBUG_PRINT: bool = true;
 
 fn main() {
     let event_loop = EventLoop::new();
@@ -21,6 +24,7 @@ fn main() {
     let mut time = Instant::now();
     let mut tick_counter = 0;
     let mut speedup = 0;
+    let mut rng = rand::thread_rng();
     let window = {
         let size = LogicalSize::new(SCREEN_WIDTH as f64, SCREEN_HEIGHT as f64);
         WindowBuilder::new().with_title("Rustetris")
@@ -54,7 +58,7 @@ fn main() {
         grid[0][18] = 1;
     */
 
-    let mut piece = create_piece(0);
+    let mut piece = create_piece(&mut rng);
     let mut at_bottom = false;
 
     // *** Main loop ***
@@ -74,20 +78,13 @@ fn main() {
 
         if at_bottom {
             println!("created piece");
-            piece = create_piece(1);
+            piece = create_piece(&mut rng);
             at_bottom = false;
         }
 
-        piece.old_tiles.iter().map(|tile| grid[tile.0 as usize][tile.1 as usize] = 0).count();
-        piece.old_tiles = vec![];
-        for tile in &piece.tiles {
-            piece.old_tiles.push((tile.0 + piece.x, tile.1 + piece.y));
-        }
 
-        // Load piece into grid
-        for tile in &piece.tiles {
-            grid[(tile.0 + piece.x) as usize][(tile.1 + piece.y) as usize] = 1;
-        }
+        refresh_tiles(&mut piece, &mut grid);
+
 
         /* 
         let mut reserved_tiles = Vec::new();
@@ -112,8 +109,12 @@ fn main() {
             }
             if input.key_pressed(VirtualKeyCode::Down) {
                 // piece_moved = piece.rotate(false, &grid);
-                while piece.try_relocate(0, 1, &grid) {
-                    
+                let success = piece.try_relocate(0, 1, &grid);
+                if !success {
+                    at_bottom = true;
+                }
+                if success {
+                    piece_moved = true;
                 }
 
             }
@@ -125,9 +126,10 @@ fn main() {
             }
             let now = Instant::now();
             let dt = now.duration_since(time);
-
+            if piece_moved {
+                refresh_tiles(&mut piece, &mut grid);
+            }
             // If tick has passed, move current piece downwards and check if it stopped
-            
             let mut time_limit = TICK_LENGTH - speedup as u128;
             if time_limit < 100 {
                 time_limit = 100;
@@ -140,6 +142,20 @@ fn main() {
                 if tick_counter > SPEEDUP_LIMIT {
                     tick_counter = 0;
                     speedup += TICK_SPEEDUP;
+                }
+                if DEBUG_PRINT {
+                    for row in 0..GRID_HEIGHT {
+                        for col in 0..GRID_WIDTH {
+                            let sign = grid[col as usize][row as usize];
+                            if sign == 0 {
+                                print!(" ");
+                            } else {
+                                print!("#");
+                            }
+                        }
+                        println!("");
+                    }
+                    println!("");
                 }
             }
             /*if piece_moved {
@@ -171,11 +187,9 @@ fn main() {
                     for col in 0..GRID_WIDTH {
                         grid[col as usize][row as usize] = 0;
                     }
-                    println!("moving line at {}", row);
                     // Then, move all rows above it down by 1
                     for row_to_move in (1..=row).rev() {
                         for col in (0..GRID_WIDTH).rev() {
-                            println!("row {} col {}", row, col);
                             let tile_to_move = grid[col as usize][(row_to_move - 1) as usize];
                             grid[col as usize][row_to_move as usize] = tile_to_move;
                             grid[col as usize][(row_to_move - 1) as usize] = 0;
@@ -183,11 +197,10 @@ fn main() {
                     }
                 }
             }
+
             window.request_redraw();
         }
     });
-
-
 
 }
 
@@ -345,11 +358,15 @@ impl Piece {
 
 }
 
-pub fn create_piece(piece_type: u16) -> Piece {
+pub fn create_piece(rng: &mut rand::rngs::ThreadRng) -> Piece {
+    let piece_type = rng.gen_range(0..=2);
     let mut tiles = match piece_type {
         0 => vec![(0, 2), (0, -1), (0, 1), (0, 0)],
         1 => vec![(0, 0), (0, -1), (0, 1), (1, 1)],
-        1 => vec![(0, 0), (0, -1), (0, 1), (1, 1)],
+        2 => vec![(0, -1), (0, 0), (0, 1), (1, 0)],
+        3 => vec![(0, -1), (0, 0), (0, 1), (-1, -1)],
+        4 => vec![(0, 0), (1, 0), (0, 1), (1, 1)],
+        
         _ => panic!("Create piece panicked"),
     };
     
@@ -361,5 +378,18 @@ pub fn create_piece(piece_type: u16) -> Piece {
         x: 5,
         y: 3,
         old_tiles: vec![],
+    }
+}
+
+pub fn refresh_tiles(piece: &mut Piece, grid: &mut Vec<Vec<u16>>) {
+    piece.old_tiles.iter().map(|tile| grid[tile.0 as usize][tile.1 as usize] = 0).count();
+    piece.old_tiles = vec![];
+    for tile in &piece.tiles {
+        piece.old_tiles.push((tile.0 + piece.x, tile.1 + piece.y));
+    }
+
+    // Load piece into grid
+    for tile in &piece.tiles {
+        grid[(tile.0 + piece.x) as usize][(tile.1 + piece.y) as usize] = 1;
     }
 }
