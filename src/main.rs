@@ -111,7 +111,10 @@ fn main() {
                 piece_moved = piece.rotate(true, &grid);
             }
             if input.key_pressed(VirtualKeyCode::Down) {
-                piece_moved = piece.rotate(false, &grid);
+                // piece_moved = piece.rotate(false, &grid);
+                while piece.try_relocate(0, 1, &grid) {
+                    
+                }
 
             }
             if input.key_pressed(VirtualKeyCode::Left) {
