@@ -109,14 +109,17 @@ fn main() {
             }
             if input.key_pressed(VirtualKeyCode::Down) {
                 // piece_moved = piece.rotate(false, &grid);
-                let success = piece.try_relocate(0, 1, &grid);
+                /*let success = piece.try_relocate(0, 1, &grid);
                 if !success {
                     at_bottom = true;
                 }
                 if success {
                     piece_moved = true;
+                }*/
+                while piece.try_relocate(0, 1, &grid) {
+                    refresh_tiles(&mut piece, &mut grid);
                 }
-
+                at_bottom = true;
             }
             if input.key_pressed(VirtualKeyCode::Left) {
                 piece_moved =  piece.try_relocate(-1, 0, &grid);
