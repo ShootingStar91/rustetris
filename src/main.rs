@@ -9,7 +9,7 @@ use winit::window::WindowBuilder;
 use winit_input_helper::WinitInputHelper;
 
 const TILE_SIZE: u16 = 32;
-const GRID_WIDTH: u16 = 12;
+const GRID_WIDTH: u16 = 16;
 const GRID_HEIGHT: u16 = 20;
 const SCREEN_WIDTH: u32 = TILE_SIZE as u32 * GRID_WIDTH as u32;
 const SCREEN_HEIGHT: u32 = TILE_SIZE as u32 * GRID_HEIGHT as u32;
@@ -368,7 +368,7 @@ impl Piece {
 }
 
 pub fn create_piece(rng: &mut rand::rngs::ThreadRng) -> Piece {
-    let piece_type = rng.gen_range(1..=6);
+    let piece_type = rng.gen_range(0..=7);
     let mut tiles = match piece_type {
         0 => vec![(0, 2), (0, -1), (0, 1), (0, 0)],
         1 => vec![(0, 0), (0, -1), (0, 1), (1, 1)],
@@ -377,7 +377,7 @@ pub fn create_piece(rng: &mut rand::rngs::ThreadRng) -> Piece {
         4 => vec![(-1, 0), (0, 0), (0, 1), (1, 1)],
         5 => vec![(-1, 1), (0, 0), (0, 1), (1, 0)],
         6 => vec![(0, 0), (0, -1), (0, 1), (-1, 1)],
-
+        7 => vec![(0, 0), (0, 1), (1, 1), (1, 0)],
         _ => panic!("Create piece panicked"),
     };
 
