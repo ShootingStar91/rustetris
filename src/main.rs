@@ -9,7 +9,7 @@ use winit::window::WindowBuilder;
 use winit_input_helper::WinitInputHelper;
 
 const TILE_SIZE: u16 = 32;
-const GRID_WIDTH: u16 = 16;
+const GRID_WIDTH: u16 = 12;
 const GRID_HEIGHT: u16 = 20;
 const SCREEN_WIDTH: u32 = TILE_SIZE as u32 * GRID_WIDTH as u32;
 const SCREEN_HEIGHT: u32 = TILE_SIZE as u32 * GRID_HEIGHT as u32;
@@ -112,7 +112,7 @@ fn main() {
                 *control_flow = ControlFlow::Exit;
                 return;
             }
-
+            refresh_tiles(&mut piece, &mut grid);
             if input.key_pressed(VirtualKeyCode::Up) {
                 piece_moved = piece.rotate(true, &grid);
             }

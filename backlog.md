@@ -24,3 +24,5 @@ Rustetris backlog
      loop run: First when pressing down and then with tick-move. Maybe caused by old tiles getting refreshed only
      once during the loop, and there is a case of brick overlapping with itself
      ...but this doesn't explain why it always happens just one tile before it would overlap with something
+  * Found new occurrence of this after fixing. The block stopped 1 tile before, possibly when rotating it
+    * Happened also when moving it to right, not rotating
