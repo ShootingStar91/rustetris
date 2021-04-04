@@ -1,7 +1,6 @@
 use pixels::{Pixels, SurfaceTexture};
-use rand::thread_rng;
 use rand::Rng;
-use std::time::{Duration, Instant};
+use std::time::{Instant};
 use winit::dpi::LogicalSize;
 use winit::event::{Event, VirtualKeyCode};
 use winit::event_loop::{ControlFlow, EventLoop};
@@ -9,14 +8,17 @@ use winit::window::WindowBuilder;
 use winit_input_helper::WinitInputHelper;
 
 const TILE_SIZE: u16 = 32;
-const GRID_WIDTH: u16 = 12;
-const GRID_HEIGHT: u16 = 20;
+const GRID_WIDTH: u16 = 16; // 12 normal
+const GRID_HEIGHT: u16 = 26; // 20 normal
 const SCREEN_WIDTH: u32 = TILE_SIZE as u32 * GRID_WIDTH as u32;
 const SCREEN_HEIGHT: u32 = TILE_SIZE as u32 * GRID_HEIGHT as u32;
 
 const TICK_LENGTH: u128 = 300; // Game speed at start
 const TICK_SPEEDUP: u128 = 0; // How much ticks will speed up
 const SPEEDUP_LIMIT: usize = 20; // After how many ticks speedup is applied
+
+const PIECE_SPAWN_Y: usize = 2;
+const PIECE_SPAWN_X: usize = GRID_WIDTH as usize / 2;
 
 const COLORS: usize = 4;
 
@@ -47,7 +49,7 @@ fn main() {
         Pixels::new(SCREEN_WIDTH, SCREEN_HEIGHT, surface_texture).unwrap()
     };
 
-    let mut grid = vec![vec![0u16; GRID_HEIGHT as usize]; GRID_WIDTH as usize];
+    let mut grid = vec![vec![0i16; GRID_HEIGHT as usize]; GRID_WIDTH as usize];
 
     // for testing grid only.
     /*
@@ -107,7 +109,7 @@ fn main() {
 
         if input.update(&event) {
             let mut piece_moved = false;
-            let mut old_tiles = piece.tiles.clone();
+//            let mut old_tiles = piece.tiles.clone();
             if input.key_pressed(VirtualKeyCode::Escape) || input.quit() {
                 *control_flow = ControlFlow::Exit;
                 return;
@@ -148,9 +150,7 @@ fn main() {
             }
             if dt.as_millis() > time_limit {
                 at_bottom = !piece.try_relocate(0, 1, &grid);
-                if at_bottom {
-                    piece_moved = false;
-                }
+
                 time = Instant::now();
                 tick_counter += 1;
                 if tick_counter > SPEEDUP_LIMIT {
@@ -219,15 +219,16 @@ fn main() {
 }
 
 /// Draws the game grid
-pub fn draw_grid(grid: &Vec<Vec<u16>>, frame: &mut [u8]) {
+pub fn draw_grid(grid: &Vec<Vec<i16>>, frame: &mut [u8]) {
     for (i, pixel) in frame.chunks_exact_mut(4).enumerate() {
         let tile = get_tile(i);
-        let mut color: usize = 2;
+        let mut color: i16 = 2;
         if tile.0 <= GRID_WIDTH as usize && tile.1 <= GRID_HEIGHT as usize {
-            color = grid[tile.0 as usize][tile.1 as usize] as usize;
+            color = grid[tile.0 as usize][tile.1 as usize];
         }
 
         let rgba = match color {
+            -1 => [0x69, 0x69, 0x69, 0xff], // grey
             0 => [0xfd, 0xfd, 0xfd, 0xff], // 253, 237, 248
             1 => [0x32, 0xb9, 0x13, 0xff], // 50 185 19
             2 => [0x13, 0x32, 0xb9, 0xff], // 19, 50, 185
@@ -259,6 +260,7 @@ pub struct Piece {
     x: i16,
     y: i16,
     pub old_tiles: Vec<(i16, i16)>, // these include x and y. current tiles dont
+
 }
 
 impl Piece {
@@ -274,9 +276,9 @@ impl Piece {
 
     /// Returns false if could not relocate due to going out
     /// of boundaries
-    fn try_relocate(&mut self, dx: i16, dy: i16, grid: &Vec<Vec<u16>>) -> bool {
+    fn try_relocate(&mut self, dx: i16, dy: i16, grid: &Vec<Vec<i16>>) -> bool {
         self.relocate(dx, dy);
-        let mut old_tiles_backup = self.old_tiles.clone();
+        let old_tiles_backup = self.old_tiles.clone();
 
         if !self.is_in_boundaries() || self.overlaps(grid) {
             self.relocate(-dx, -dy);
@@ -291,9 +293,9 @@ impl Piece {
     /// Rotate piece to right or left
     /// Checks first if rotation is possible,
     /// if not, returns false
-    fn rotate(&mut self, to_right: bool, grid: &Vec<Vec<u16>>) -> bool {
+    fn rotate(&mut self, to_right: bool, grid: &Vec<Vec<i16>>) -> bool {
         self.rotate_tiles(to_right);
-        let mut old_tiles_backup = self.old_tiles.clone();
+        let old_tiles_backup = self.old_tiles.clone();
         // Undo rotation if tiles are not inside game grid
         // and inform function caller
         if !self.is_in_boundaries() {
@@ -344,7 +346,7 @@ impl Piece {
         true
     }
 
-    fn overlaps(&self, grid: &Vec<Vec<u16>>) -> bool {
+    fn overlaps(&self, grid: &Vec<Vec<i16>>) -> bool {
         for tile in &self.tiles {
             let mut skip = false;
 
@@ -369,7 +371,7 @@ impl Piece {
 
 pub fn create_piece(rng: &mut rand::rngs::ThreadRng) -> Piece {
     let piece_type = rng.gen_range(0..=7);
-    let mut tiles = match piece_type {
+    let tiles = match piece_type {
         0 => vec![(0, 2), (0, -1), (0, 1), (0, 0)],
         1 => vec![(0, 0), (0, -1), (0, 1), (1, 1)],
         2 => vec![(0, -1), (0, 0), (0, 1), (1, 0)],
@@ -385,13 +387,13 @@ pub fn create_piece(rng: &mut rand::rngs::ThreadRng) -> Piece {
         tiles,
         orientation: 0,
         color: rng.gen_range(1..=COLORS),
-        x: 5,
-        y: 2,
+        x: PIECE_SPAWN_X as i16,
+        y: PIECE_SPAWN_Y as i16,
         old_tiles: vec![],
     }
 }
 
-pub fn refresh_tiles(piece: &mut Piece, grid: &mut Vec<Vec<u16>>) {
+pub fn refresh_tiles(piece: &mut Piece, grid: &mut Vec<Vec<i16>>) {
     piece
         .old_tiles
         .iter()
@@ -402,8 +404,46 @@ pub fn refresh_tiles(piece: &mut Piece, grid: &mut Vec<Vec<u16>>) {
         piece.old_tiles.push((tile.0 + piece.x, tile.1 + piece.y));
     }
 
+    for x in 0..GRID_WIDTH as usize {
+        for y in 0..GRID_HEIGHT as usize {
+            if grid[x][y] == -1 { grid[x][y] = 0; }
+        }
+    }
+
     // Load piece into grid
     for tile in &piece.tiles {
-        grid[(tile.0 + piece.x) as usize][(tile.1 + piece.y) as usize] = piece.color as u16;
+        grid[(tile.0 + piece.x) as usize][(tile.1 + piece.y) as usize] = piece.color as i16;
     }
+
+    // Add shade of where piece would currently fall
+    let mut shade: Vec<(i16, i16)> = piece.tiles.clone();
+    for tile in &mut shade {
+        let mut new_y = tile.1 + piece.y + 3;
+        if piece.y > 6 { new_y - 3; }
+        *tile = (tile.0 + piece.x, new_y);
+    }
+
+    let mut final_dy = 0; // save last dy without overlap here
+    'drop_piece: for dy in 1..18 {
+        for tile in &shade {
+            let x = tile.0 as usize;
+            let y = (tile.1 + dy) as usize;
+            if y >= GRID_HEIGHT as usize || grid[x][y] > 0 { 
+                final_dy = dy - 1;
+                break 'drop_piece;
+            }
+        }
+    }
+    if final_dy == 0 {
+        return;
+    }
+    for tile in shade {
+        let x = tile.0 as usize;
+        let y = (tile.1 + final_dy) as usize;
+        if y >= GRID_HEIGHT as usize {
+            break;
+        }
+        if grid[x][y] == 0 {grid[x][y] = -1;}
+    }
+
 }
