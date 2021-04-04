@@ -19,6 +19,8 @@ const SPEEDUP_LIMIT: usize = 20; // After how many ticks speedup is applied
 
 const PIECE_SPAWN_Y: usize = 2;
 const PIECE_SPAWN_X: usize = GRID_WIDTH as usize / 2;
+const NEXT_PIECE_OFFSET_X: i16 = 1;
+const NEXT_PIECE_OFFSET_Y: i16 = 2;
 
 const COLORS: usize = 4;
 
@@ -69,12 +71,19 @@ fn main() {
     */
 
     let mut piece = create_piece(&mut rng);
+    let mut next_piece = create_piece(&mut rng);
     let mut at_bottom = false;
 
     // *** Main loop ***
     event_loop.run(move |event, _, control_flow| {
         if let Event::RedrawRequested(_) = event {
-            draw_grid(&grid, pixels.get_frame(), &shadegrid);
+            for t in &next_piece.tiles {
+                grid[(t.0 + NEXT_PIECE_OFFSET_X) as usize][(t.1 + NEXT_PIECE_OFFSET_Y) as usize] = next_piece.color as i16;
+            }
+            draw_grid(&mut grid, pixels.get_frame(), &shadegrid);
+            for t in &next_piece.tiles {
+                grid[(t.0 + NEXT_PIECE_OFFSET_X) as usize][(t.1 + NEXT_PIECE_OFFSET_Y) as usize] = 0;
+            }
             if pixels
                 .render()
                 .map_err(|e| panic!("pixels.render() failed: {}", e))
@@ -86,7 +95,8 @@ fn main() {
         }
 
         if at_bottom {
-            piece = create_piece(&mut rng);
+            piece = next_piece.copy();
+            next_piece = create_piece(&mut rng);
             at_bottom = false;
 
             // Check for game over
@@ -221,6 +231,8 @@ fn main() {
 
 /// Draws the game grid
 pub fn draw_grid(grid: &Vec<Vec<i16>>, frame: &mut [u8], shadegrid: &Vec<Vec<i16>>) {
+
+    
     for (i, pixel) in frame.chunks_exact_mut(4).enumerate() {
         let tile = get_tile(i);
         let mut color: i16 = 2;
@@ -270,6 +282,16 @@ pub struct Piece {
 }
 
 impl Piece {
+    fn copy(&self) -> Piece {
+        Piece {
+            tiles: self.tiles.clone(),
+            orientation: self.orientation,
+            color: self.color,
+            x: self.x,
+            y: self.y,
+            old_tiles: self.old_tiles.clone(),
+        }
+    }
     /// Move the piece
     fn relocate(&mut self, dx: i16, dy: i16) {
         /*self.tiles

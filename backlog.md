@@ -2,9 +2,11 @@ Rustetris backlog
 
 ++ Main tasks
 [DONE] 1. Destroy a full line and move all other dead pieces downwards
-[DONE partly] 2. Create other types of pieces randomly
-3. Recognize when game is over, meaning when a spawned piece cannot move even once (or is already overlapping)
+[DONE] 2. Create other types of pieces randomly
+[Done] 3. Recognize when game is over, meaning when a spawned piece cannot move even once (or is already overlapping)
 [DONE] 4. Drop with space or downkey
+[Done] Show where piece is gonna fall to
+6. Show what piece comes next
 
 ++ Secondary tasks
 1. Colors for pieces
