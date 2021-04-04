@@ -50,6 +50,7 @@ fn main() {
     };
 
     let mut grid = vec![vec![0i16; GRID_HEIGHT as usize]; GRID_WIDTH as usize];
+    let mut shadegrid = vec![vec![0i16; GRID_HEIGHT as usize]; GRID_WIDTH as usize];
 
     // for testing grid only.
     /*
@@ -73,7 +74,7 @@ fn main() {
     // *** Main loop ***
     event_loop.run(move |event, _, control_flow| {
         if let Event::RedrawRequested(_) = event {
-            draw_grid(&grid, pixels.get_frame());
+            draw_grid(&grid, pixels.get_frame(), &shadegrid);
             if pixels
                 .render()
                 .map_err(|e| panic!("pixels.render() failed: {}", e))
@@ -95,7 +96,7 @@ fn main() {
             }
         }
 
-        refresh_tiles(&mut piece, &mut grid);
+        refresh_tiles(&mut piece, &mut grid, &mut shadegrid);
 
         /*
         let mut reserved_tiles = Vec::new();
@@ -114,7 +115,7 @@ fn main() {
                 *control_flow = ControlFlow::Exit;
                 return;
             }
-            refresh_tiles(&mut piece, &mut grid);
+            refresh_tiles(&mut piece, &mut grid, &mut shadegrid);
             if input.key_pressed(VirtualKeyCode::Up) {
                 piece_moved = piece.rotate(true, &grid);
             }
@@ -128,7 +129,7 @@ fn main() {
                     piece_moved = true;
                 }*/
                 while piece.try_relocate(0, 1, &grid) {
-                    refresh_tiles(&mut piece, &mut grid);
+                    refresh_tiles(&mut piece, &mut grid, &mut shadegrid);
                 }
                 at_bottom = true;
             }
@@ -141,7 +142,7 @@ fn main() {
             let now = Instant::now();
             let dt = now.duration_since(time);
             if piece_moved {
-                refresh_tiles(&mut piece, &mut grid);
+                refresh_tiles(&mut piece, &mut grid, &mut shadegrid);
             }
             // If tick has passed, move current piece downwards and check if it stopped
             let mut time_limit = TICK_LENGTH - speedup as u128;
@@ -219,14 +220,19 @@ fn main() {
 }
 
 /// Draws the game grid
-pub fn draw_grid(grid: &Vec<Vec<i16>>, frame: &mut [u8]) {
+pub fn draw_grid(grid: &Vec<Vec<i16>>, frame: &mut [u8], shadegrid: &Vec<Vec<i16>>) {
     for (i, pixel) in frame.chunks_exact_mut(4).enumerate() {
         let tile = get_tile(i);
         let mut color: i16 = 2;
+        let x = tile.0 as usize;
+        let y = tile.1 as usize;
         if tile.0 <= GRID_WIDTH as usize && tile.1 <= GRID_HEIGHT as usize {
-            color = grid[tile.0 as usize][tile.1 as usize];
+            color = grid[x][y];
         }
 
+        if shadegrid[x][y] == 1 && grid[x][y] == 0 {
+            color = -1;
+        }
         let rgba = match color {
             -1 => [0x69, 0x69, 0x69, 0xff], // grey
             0 => [0xfd, 0xfd, 0xfd, 0xff], // 253, 237, 248
@@ -393,7 +399,7 @@ pub fn create_piece(rng: &mut rand::rngs::ThreadRng) -> Piece {
     }
 }
 
-pub fn refresh_tiles(piece: &mut Piece, grid: &mut Vec<Vec<i16>>) {
+pub fn refresh_tiles(piece: &mut Piece, grid: &mut Vec<Vec<i16>>, shadegrid: &mut Vec<Vec<i16>>) {
     piece
         .old_tiles
         .iter()
@@ -406,7 +412,7 @@ pub fn refresh_tiles(piece: &mut Piece, grid: &mut Vec<Vec<i16>>) {
 
     for x in 0..GRID_WIDTH as usize {
         for y in 0..GRID_HEIGHT as usize {
-            if grid[x][y] == -1 { grid[x][y] = 0; }
+            shadegrid[x][y] = 0;
         }
     }
 
@@ -418,19 +424,28 @@ pub fn refresh_tiles(piece: &mut Piece, grid: &mut Vec<Vec<i16>>) {
     // Add shade of where piece would currently fall
     let mut shade: Vec<(i16, i16)> = piece.tiles.clone();
     for tile in &mut shade {
-        let mut new_y = tile.1 + piece.y + 3;
-        if piece.y > 6 { new_y - 3; }
+        let mut new_y = tile.1 + piece.y;
+        //if piece.y > 6 { new_y - 3; }
         *tile = (tile.0 + piece.x, new_y);
     }
 
     let mut final_dy = 0; // save last dy without overlap here
-    'drop_piece: for dy in 1..18 {
+    'drop_piece: for dy in 1..GRID_HEIGHT as i16 {
         for tile in &shade {
             let x = tile.0 as usize;
             let y = (tile.1 + dy) as usize;
-            if y >= GRID_HEIGHT as usize || grid[x][y] > 0 { 
-                final_dy = dy - 1;
-                break 'drop_piece;
+            if y >= GRID_HEIGHT as usize || (grid[x][y] > 0){
+                let mut piece_at = false;
+                for t in &piece.tiles {
+                    if t.0 + piece.x == x as i16 && t.1 + piece.y == y as i16 {
+                        piece_at = true;
+                        break;
+                    }
+                }
+                if !piece_at {
+                    final_dy = dy - 1;
+                    break 'drop_piece;
+                }
             }
         }
     }
@@ -443,7 +458,7 @@ pub fn refresh_tiles(piece: &mut Piece, grid: &mut Vec<Vec<i16>>) {
         if y >= GRID_HEIGHT as usize {
             break;
         }
-        if grid[x][y] == 0 {grid[x][y] = -1;}
+        shadegrid[x][y] = 1;
     }
 
 }
