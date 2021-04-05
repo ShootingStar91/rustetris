@@ -36,6 +36,7 @@ fn main() {
     let mut speedup = 0;
     let mut rng = rand::thread_rng();
     let mut score = 0;
+    
     let window = {
         let size = LogicalSize::new(SCREEN_WIDTH as f64, SCREEN_HEIGHT as f64);
         WindowBuilder::new()
