@@ -14,7 +14,7 @@ const SCREEN_WIDTH: u32 = TILE_SIZE as u32 * GRID_WIDTH as u32;
 const SCREEN_HEIGHT: u32 = TILE_SIZE as u32 * GRID_HEIGHT as u32;
 
 const TICK_LENGTH: u128 = 300; // Game speed at start
-const SPEEDUP_CAP: u128 = 150;
+const MIN_TICK_LENGTH: u128 = 150; // Smallest tick length
 const TICK_SPEEDUP: u128 = 10; // How much ticks will speed up
 const SPEEDUP_LIMIT: usize = 75; // After how many ticks speedup is applied
 
@@ -36,7 +36,8 @@ fn main() {
     let mut speedup = 0;
     let mut rng = rand::thread_rng();
     let mut score = 0;
-    
+    let mut pause = false;
+
     let window = {
         let size = LogicalSize::new(SCREEN_WIDTH as f64, SCREEN_HEIGHT as f64);
         WindowBuilder::new()
@@ -98,67 +99,72 @@ fn main() {
 
         if input.update(&event) {
             let mut piece_moved = false;
+
             if input.key_pressed(VirtualKeyCode::Escape) || input.quit() {
                 *control_flow = ControlFlow::Exit;
                 return;
             }
-            refresh_tiles(&mut piece, &mut grid, &mut shadegrid);
-            if input.key_pressed(VirtualKeyCode::Up) {
-                piece_moved = piece.rotate(true, &grid);
-            }
-            if input.key_pressed(VirtualKeyCode::Down) {
-                while piece.try_relocate(0, 1, &grid) {
+            if input.key_pressed(VirtualKeyCode::P) || input.quit() {
+                pause = !pause; 
+            }            
+            if !pause {
+                refresh_tiles(&mut piece, &mut grid, &mut shadegrid);
+                if input.key_pressed(VirtualKeyCode::Up) {
+                    piece_moved = piece.rotate(true, &grid);
+                }
+                if input.key_pressed(VirtualKeyCode::Down) {
+                    while piece.try_relocate(0, 1, &grid) {
+                        refresh_tiles(&mut piece, &mut grid, &mut shadegrid);
+                    }
+                    at_bottom = true;
+                }
+                if input.key_pressed(VirtualKeyCode::Left) {
+                    piece_moved = piece.try_relocate(-1, 0, &grid);
+                }
+                if input.key_pressed(VirtualKeyCode::Right) {
+                    piece_moved = piece.try_relocate(1, 0, &grid);
+                }
+                let now = Instant::now();
+                let dt = now.duration_since(time);
+                if piece_moved {
                     refresh_tiles(&mut piece, &mut grid, &mut shadegrid);
                 }
-                at_bottom = true;
-            }
-            if input.key_pressed(VirtualKeyCode::Left) {
-                piece_moved = piece.try_relocate(-1, 0, &grid);
-            }
-            if input.key_pressed(VirtualKeyCode::Right) {
-                piece_moved = piece.try_relocate(1, 0, &grid);
-            }
-            let now = Instant::now();
-            let dt = now.duration_since(time);
-            if piece_moved {
-                refresh_tiles(&mut piece, &mut grid, &mut shadegrid);
-            }
-            // If tick has passed, move current piece downwards and check if it stopped
-            let mut time_limit: u128;
-            if speedup > TICK_LENGTH - SPEEDUP_CAP {
-                time_limit = TICK_LENGTH - speedup as u128;
-            } else {
-                time_limit = SPEEDUP_CAP;
-            }
-            if time_limit < 100 {
-                time_limit = 100;
-            }
-            if dt.as_millis() > time_limit {
-                at_bottom = !piece.try_relocate(0, 1, &grid);
-
-                time = Instant::now();
-                tick_counter += 1;
-                if tick_counter > SPEEDUP_LIMIT {
-                    tick_counter = 0;
-                    speedup += TICK_SPEEDUP;
-                    println!("speedup {}", speedup);
+                // If tick has passed, move current piece downwards and check if it stopped
+                let mut time_limit: u128;
+                if speedup > TICK_LENGTH - MIN_TICK_LENGTH {
+                    time_limit = TICK_LENGTH - speedup as u128;
+                } else {
+                    time_limit = MIN_TICK_LENGTH;
                 }
-                if DEBUG_PRINT {
-                    for row in 0..GRID_HEIGHT {
-                        for col in 0..GRID_WIDTH {
-                            let sign = grid[col as usize][row as usize];
-                            if sign == 0 {
-                                print!(" ");
-                            } else {
-                                print!("#");
+                if time_limit < 100 {
+                    time_limit = 100;
+                }
+                if dt.as_millis() > time_limit {
+                    at_bottom = !piece.try_relocate(0, 1, &grid);
+
+                    time = Instant::now();
+                    tick_counter += 1;
+                    if tick_counter > SPEEDUP_LIMIT {
+                        tick_counter = 0;
+                        speedup += TICK_SPEEDUP;
+                        println!("speedup {}", speedup);
+                    }
+                    if DEBUG_PRINT {
+                        for row in 0..GRID_HEIGHT {
+                            for col in 0..GRID_WIDTH {
+                                let sign = grid[col as usize][row as usize];
+                                if sign == 0 {
+                                    print!(" ");
+                                } else {
+                                    print!("#");
+                                }
                             }
+                            println!("");
                         }
                         println!("");
                     }
-                    println!("");
                 }
             }
-
             if at_bottom {
                 let mut full_lines: Vec<usize> = Vec::new();
                 // Check if there is a full line that needs demolishing and move everything downwards
@@ -361,16 +367,15 @@ impl Piece {
 }
 
 pub fn create_piece(rng: &mut rand::rngs::ThreadRng) -> Piece {
-    let piece_type = rng.gen_range(0..=7);
+    let piece_type = rng.gen_range(0..=470);
     let tiles = match piece_type {
-        0 => vec![(0, 2), (0, -1), (0, 1), (0, 0)],
-        1 => vec![(0, 0), (0, -1), (0, 1), (1, 1)],
-        2 => vec![(0, -1), (0, 0), (0, 1), (1, 0)],
-        3 => vec![(0, -1), (0, 0), (0, 1), (-1, -1)],
-        4 => vec![(-1, 0), (0, 0), (0, 1), (1, 1)],
-        5 => vec![(-1, 1), (0, 0), (0, 1), (1, 0)],
-        6 => vec![(0, 0), (0, -1), (0, 1), (-1, 1)],
-        7 => vec![(0, 0), (0, 1), (1, 1), (1, 0)],
+        0..=100 => vec![(0, 2), (0, -1), (0, 1), (0, 0)],     // Stick piece
+        101..=170 => vec![(0, 0), (0, -1), (0, 1), (1, 1)],   // L piece
+        171..=240 => vec![(0, 0), (0, -1), (0, 1), (-1, 1)],  // L invert
+        241..=280 => vec![(-1, 0), (0, 0), (0, 1), (1, 1)],   // zigzag
+        281..=320 => vec![(-1, 1), (0, 0), (0, 1), (1, 0)],   // zigzag invert
+        321..=380 =>  vec![(0, -1), (0, 0), (0, 1), (1, 0)],  // "fork"
+        381..=470 => vec![(0, 0), (0, 1), (1, 1), (1, 0)],    // block
         _ => panic!("Create piece panicked"),
     };
 
