@@ -1,22 +1,15 @@
 Rustetris backlog
 
 ++ Main tasks
-[DONE] 1. Destroy a full line and move all other dead pieces downwards
-[DONE] 2. Create other types of pieces randomly
+[Done] 1. Destroy a full line and move all other dead pieces downwards
+[Done] 2. Create other types of pieces randomly
 [Done] 3. Recognize when game is over, meaning when a spawned piece cannot move even once (or is already overlapping)
-[DONE] 4. Drop with space or downkey
-[Done] Show where piece is gonna fall to
-6. Show what piece comes next
-
-++ Secondary tasks
-1. Colors for pieces
-2. Random orientations
+[Done] 4. Drop with space or downkey
+[Done] 5. Show where piece is gonna fall to
+[Done] 6. Show what piece comes next
+[    ] 7. Show score in game window 
 
 
-++ Possible future ideas
-[DONE, although crashes if played too long] 1. Speed growing as time goes by
-2. Counting score
-3. Highscore list
 
 ++ Known bugs
 [Possibly fixed by refreshing old_tiles and loading piece to grid also if drop key has moved brick]
