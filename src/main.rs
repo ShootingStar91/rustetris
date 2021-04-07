@@ -8,15 +8,15 @@ use winit::window::WindowBuilder;
 use winit_input_helper::WinitInputHelper;
 
 const TILE_SIZE: u16 = 32;
-const GRID_WIDTH: u16 = 16; // 12 normal
-const GRID_HEIGHT: u16 = 26; // 20 normal
+const GRID_WIDTH: u16 = 12; // 12 normal, 16 big
+const GRID_HEIGHT: u16 = 20; // 20 normal, 26 big
 const SCREEN_WIDTH: u32 = TILE_SIZE as u32 * GRID_WIDTH as u32;
 const SCREEN_HEIGHT: u32 = TILE_SIZE as u32 * GRID_HEIGHT as u32;
 
-const TICK_LENGTH: u128 = 300; // Game speed at start
-const MIN_TICK_LENGTH: u128 = 150; // Smallest tick length
-const TICK_SPEEDUP: u128 = 10; // How much ticks will speed up
-const SPEEDUP_LIMIT: usize = 75; // After how many ticks speedup is applied
+const TICK_LENGTH: u128 = 320; // Game speed at start 
+const MIN_TICK_LENGTH: u128 = 50; // Smallest tick length
+const TICK_SPEEDUP: u128 = 0; // How much ticks will speed up
+const SPEEDUP_LIMIT: usize = 30; // After how many ticks speedup is applied
 
 const PIECE_SPAWN_Y: usize = 2;
 const PIECE_SPAWN_X: usize = GRID_WIDTH as usize / 2;
@@ -131,7 +131,7 @@ fn main() {
                 }
                 // If tick has passed, move current piece downwards and check if it stopped
                 let mut time_limit: u128;
-                if speedup > TICK_LENGTH - MIN_TICK_LENGTH {
+                if speedup > MIN_TICK_LENGTH {
                     time_limit = TICK_LENGTH - speedup as u128;
                 } else {
                     time_limit = MIN_TICK_LENGTH;
@@ -139,7 +139,7 @@ fn main() {
                 if time_limit < 100 {
                     time_limit = 100;
                 }
-                if dt.as_millis() > time_limit {
+                if dt.as_millis() > TICK_LENGTH {
                     at_bottom = !piece.try_relocate(0, 1, &grid);
 
                     time = Instant::now();
@@ -147,7 +147,7 @@ fn main() {
                     if tick_counter > SPEEDUP_LIMIT {
                         tick_counter = 0;
                         speedup += TICK_SPEEDUP;
-                        println!("speedup {}", speedup);
+                    //    println!("speedup {}", speedup);
                     }
                     if DEBUG_PRINT {
                         for row in 0..GRID_HEIGHT {
@@ -220,7 +220,7 @@ pub fn draw_grid(grid: &Vec<Vec<i16>>, frame: &mut [u8], shadegrid: &Vec<Vec<i16
         }
         let rgba = match color {
             -2 => [0xde, 0xde, 0xde, 0xff], // lighter grey
-            -1 => [0x99, 0x99, 0x99, 0xff], // grey
+            -1 => [0xde, 0xde, 0xde, 0xff], // grey
             0 => [0xfd, 0xfd, 0xfd, 0xff],  // 253, 237, 248
             1 => [0x32, 0xb9, 0x13, 0xff],  // 50 185 19
             2 => [0x13, 0x32, 0xb9, 0xff],  // 19, 50, 185
