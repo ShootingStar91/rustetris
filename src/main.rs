@@ -13,10 +13,10 @@ const GRID_HEIGHT: u16 = 20; // 20 normal, 26 big
 const SCREEN_WIDTH: u32 = TILE_SIZE as u32 * GRID_WIDTH as u32;
 const SCREEN_HEIGHT: u32 = TILE_SIZE as u32 * GRID_HEIGHT as u32;
 
-const TICK_LENGTH: u128 = 320; // Game speed at start 
-const MIN_TICK_LENGTH: u128 = 50; // Smallest tick length
-const TICK_SPEEDUP: u128 = 0; // How much ticks will speed up
-const SPEEDUP_LIMIT: usize = 30; // After how many ticks speedup is applied
+const TICK_LENGTH: i128 = 320; // Game speed at start 
+const MIN_TICK_LENGTH: i128 = 50; // Smallest tick length
+const TICK_SPEEDUP: u128 = 20; // How much ticks will speed up
+const SPEEDUP_TIMER: usize = 10; // After how many seconds speedup is applied
 
 const PIECE_SPAWN_Y: usize = 2;
 const PIECE_SPAWN_X: usize = GRID_WIDTH as usize / 2;
@@ -32,11 +32,12 @@ fn main() {
     let event_loop = EventLoop::new();
     let mut input = WinitInputHelper::new();
     let mut time = Instant::now();
-    let mut tick_counter = 0;
-    let mut speedup = 0;
+    let mut speedup_timer = Instant::now();
+    let mut speedup: i128 = 0;
     let mut rng = rand::thread_rng();
     let mut score = 0;
     let mut pause = false;
+    let mut time_limit: i128 = TICK_LENGTH;
 
     let window = {
         let size = LogicalSize::new(SCREEN_WIDTH as f64, SCREEN_HEIGHT as f64);
@@ -129,26 +130,11 @@ fn main() {
                 if piece_moved {
                     refresh_tiles(&mut piece, &mut grid, &mut shadegrid);
                 }
-                // If tick has passed, move current piece downwards and check if it stopped
-                let mut time_limit: u128;
-                if speedup > MIN_TICK_LENGTH {
-                    time_limit = TICK_LENGTH - speedup as u128;
-                } else {
-                    time_limit = MIN_TICK_LENGTH;
-                }
-                if time_limit < 100 {
-                    time_limit = 100;
-                }
-                if dt.as_millis() > TICK_LENGTH {
+
+                if dt.as_millis() > time_limit as u128 {
                     at_bottom = !piece.try_relocate(0, 1, &grid);
 
                     time = Instant::now();
-                    tick_counter += 1;
-                    if tick_counter > SPEEDUP_LIMIT {
-                        tick_counter = 0;
-                        speedup += TICK_SPEEDUP;
-                    //    println!("speedup {}", speedup);
-                    }
                     if DEBUG_PRINT {
                         for row in 0..GRID_HEIGHT {
                             for col in 0..GRID_WIDTH {
@@ -197,6 +183,16 @@ fn main() {
                         }
                     }
                 }
+            }
+
+            let speedup_timer_now = Instant::now();
+            let speedup_dt = speedup_timer_now.duration_since(speedup_timer);
+            if speedup_dt.as_secs() > SPEEDUP_TIMER as u64  {
+                if time_limit > MIN_TICK_LENGTH - speedup {
+                    time_limit -= TICK_SPEEDUP as i128;
+                }
+                println!("Time limit: {}", time_limit);
+                speedup_timer = Instant::now();
             }
 
             window.request_redraw();
