@@ -13,10 +13,10 @@ const GRID_HEIGHT: u16 = 20; // 20 normal, 26 big
 const SCREEN_WIDTH: u32 = TILE_SIZE as u32 * GRID_WIDTH as u32;
 const SCREEN_HEIGHT: u32 = TILE_SIZE as u32 * GRID_HEIGHT as u32;
 
-const TICK_LENGTH: i128 = 320; // Game speed at start 
-const MIN_TICK_LENGTH: i128 = 50; // Smallest tick length
-const TICK_SPEEDUP: u128 = 20; // How much ticks will speed up
-const SPEEDUP_TIMER: usize = 10; // After how many seconds speedup is applied
+const TICK_LENGTH: i128 = 400; // Game speed at start 
+const MIN_TICK_LENGTH: i128 = 220; // Smallest tick length
+const TICK_SPEEDUP: u128 = 15; // How much ticks will speed up
+const SPEEDUP_TIMER: usize = 25; // After how many seconds speedup is applied
 
 const PIECE_SPAWN_Y: usize = 2;
 const PIECE_SPAWN_X: usize = GRID_WIDTH as usize / 2;
@@ -33,7 +33,7 @@ fn main() {
     let mut input = WinitInputHelper::new();
     let mut time = Instant::now();
     let mut speedup_timer = Instant::now();
-    let mut speedup: i128 = 0;
+    let speedup: i128 = TICK_SPEEDUP as i128;
     let mut rng = rand::thread_rng();
     let mut score = 0;
     let mut pause = false;
@@ -184,17 +184,17 @@ fn main() {
                     }
                 }
             }
-
-            let speedup_timer_now = Instant::now();
-            let speedup_dt = speedup_timer_now.duration_since(speedup_timer);
-            if speedup_dt.as_secs() > SPEEDUP_TIMER as u64  {
-                if time_limit > MIN_TICK_LENGTH - speedup {
-                    time_limit -= TICK_SPEEDUP as i128;
+            if !pause {
+                let speedup_timer_now = Instant::now();
+                let speedup_dt = speedup_timer_now.duration_since(speedup_timer);
+                if speedup_dt.as_secs() > SPEEDUP_TIMER as u64  {
+                    if time_limit > MIN_TICK_LENGTH - speedup {
+                        time_limit -= TICK_SPEEDUP as i128;
+                    }
+                    println!("time limit {}", time_limit);
+                    speedup_timer = Instant::now();
                 }
-                println!("Time limit: {}", time_limit);
-                speedup_timer = Instant::now();
             }
-
             window.request_redraw();
         }
     });
