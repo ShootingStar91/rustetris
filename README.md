@@ -2,6 +2,10 @@
 
 Simple tetris with Rust for learning. Using pixels and winit.
 
+### Known issues
+
+Tiles sometimes are left hanging in air if the rest of the piece is blown up. Probably should not happen.
+
 ### Task list
 
 1. Show scores afterwards
