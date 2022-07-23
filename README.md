@@ -12,7 +12,7 @@ Download and run [the exe file of release 0.1](https://github.com/ShootingStar91
 
 Download the [linux executable file](https://github.com/ShootingStar91/rustetris/releases/download/0.1/rustetris)
 
-To run, in the download folder do `sudo chmod 777 ./rustetris` and then `./rustetris`
+To run, in the download folder do `sudo chmod a+r ./rustetris` and then `./rustetris`
 
 Alternatively, clone and run the project's source directly with Rust's package manager cargo.
 
